@@ -11,7 +11,24 @@ module FinalAPI
         end
 
         def data
-          builds.map { |build| DDTF_Build.new(build).test_data }
+          builds.map do |build|
+            begin
+              DDTF_Build.new(build).test_data
+            rescue => error
+              {
+                'id': build.id,
+                'buildId': build.id,
+                'name': build.try(&:name) || "Broken build data #{build.id}",
+                'build': error.to_s,
+                'status': 'broken',
+                'started': build.try(&:created_at),
+                'isTsd': true,
+                'results': [
+                  { 'type': 'Failed', 'value': 1.0 }
+                 ]
+              }
+            end
+          end
         end
 
       end

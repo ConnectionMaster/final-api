@@ -291,6 +291,39 @@ describe 'DDTF' do
       }
       expect(response).to include(expected_response)
     end
+
+    context 'when test data invalid' do
+      before :each do
+        expect_any_instance_of(FinalAPI::V1::Http::DDTF_Build).to receive(:test_data) do
+          raise 'Some test data are invalid'
+        end
+      end
+
+      it 'handles request with reduced json response' do
+        build_name = 'custom name'
+
+        Factory(:build, name: build_name)
+
+        get '/ddtf/tests', {}, headers
+
+        expect(last_response.status).to eq(200)
+        expect_name(build_name)
+      end
+
+      it 'returns custom title with build id if name is missing' do
+        Factory(:build, id: 666, name: nil)
+
+        get '/ddtf/tests', {}, headers
+
+        expect(last_response.status).to eq(200)
+        expect_name('Broken build data 666')
+      end
+
+      def expect_name(name)
+        response = MultiJson.load(last_response.body)
+        expect(response.first['name']).to eq name
+      end
+    end
   end
 
   describe 'GET /ddtf/tests/:id' do
